@@ -1,104 +1,44 @@
-//
-//  DrawerPresentationController.swift
-//  UIDrawer
-//
-//  Created by Personnal on 16/07/2019.
-//  Copyright © 2019 Personnal. All rights reserved.
-//
-
 import Foundation
 
-/// DrawerPresentationController is a UIPresentationController that allows
-/// modals to be presented like a bottom sheet. The kind of presentation style
-/// you can see on the Maps app on iOS.
-///
-/// Return a DrawerPresentationController in a UIViewControllerTransitioningDelegate.
-
 public class DrawerPresentationController: UIPresentationController {
-    
-    /// Optional attributes
-    
-    /// Drawer delegate serves as a notifier for the presenting view controller.
-    /// It will notify when the state (position) of the drawer has changed.
-    /// Sate and position are here described as SnapPoints.
+
+    // Optional attributes
     public weak var drawerDelegate: DrawerPresentationControllerDelegate?
-    
-    /// Public setable attributes
-    
-    /// Blur effect for the view displayed behind the drawer.
-    ///   -------
-    ///  |...A...|
-    ///  |.......|
-    ///  |.......|    . = Bulrred view
-    ///  |/¯¯¯¯¯\|    A = Presenting
-    ///  |   B   |    B = Presented (Modal)
-    ///  |_______|
+
+    // Public setable attributes
     public var blurEffectStyle: UIBlurEffect.Style = .light
-    
-    /// The gap between the top of the modal and the top of the presenting
-    /// view controller.
-    ///   -------
-    ///  |   A   | ¯|
-    ///  |       |  |< this is the top gap
-    ///  |       | _|
-    ///  |/¯¯¯¯¯\|    A = Presenting
-    ///  |   B   |    B = Presented (Modal)
-    ///  |_______|
     public var topGap: CGFloat = 88
-    
-    /// Modal width, you probably want to change it on an iPad to prevent it
-    /// taking the whole width available.
-    /// 0 = same with of the presenting view controller.
-    ///   -------
-    ///  |   A   |
-    ///  |       |
-    ///  |       |
-    ///  |/¯¯¯¯¯\|    A = Presenting
-    ///  |   B   |    B = Presented (Modal)
-    ///  |_______|
-    ///   ___^___ -> This is the modal width
-    ///              0 = full width
     public var modalWidth: CGFloat = 0
-    
-    /// Toggle the bounce value to allow the modal to bounce when it's being
-    /// dragged top, over the max width (add the top gap).
     public var bounce: Bool = false
-    
-    /// The modal corners radius.
-    /// The default value is 20 for a minimal yet elegant radius.
     public var cornerRadius: CGFloat = 20
-    
-    /// Set the modal's corners that should be rounded.
-    /// Defaults are the two top corners.
-    public var roundedCorners: UIRectCorner = [.topLeft, .topRight]
-    
-    /// Frame for the modally presented view.
+
+    // Frame for the modally presented view.
     override public var frameOfPresentedViewInContainerView: CGRect {
-        return CGRect(origin: CGPoint(x: 0, y: self.containerView!.frame.height/2), size: CGSize(width: (self.modalWidth == 0 ? self.containerView!.frame.width : self.modalWidth), height: self.containerView!.frame.height-self.topGap))
+        return CGRect(origin: CGPoint(x: 0, y: containerView!.frame.height/2), size: CGSize(width: (modalWidth == 0 ? containerView!.frame.width : modalWidth), height: containerView!.frame.height-topGap))
     }
-    
-    /// Private Attributes
+
+    // Private Attributes
     private var currentSnapPoint: DraweSnapPoint = .middle
-    
+    private let roundedCorners: UIRectCorner = [.topLeft, .topRight]
+
     private lazy var blurEffectView: UIVisualEffectView = {
-        let blur = UIVisualEffectView(effect: UIBlurEffect(style: self.blurEffectStyle))
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: blurEffectStyle))
         blur.isUserInteractionEnabled = true
         blur.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        blur.addGestureRecognizer(self.tapGestureRecognizer)
+        blur.addGestureRecognizer(tapGestureRecognizer)
         return blur
     }()
-    
+
     private lazy var tapGestureRecognizer: UITapGestureRecognizer = {
-        return UITapGestureRecognizer(target: self, action: #selector(self.dismiss))
+        return UITapGestureRecognizer(target: self, action: #selector(dismiss))
     }()
-    
+
     private lazy var panGesture: UIPanGestureRecognizer = {
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(self.drag(_:)))
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(drag(_:)))
         return pan
     }()
-    
-    /// Initializers
-    /// Init with non required values - defaults are provided.
+
+    // Initializers
     public convenience init(presentedViewController: UIViewController, presenting presentingViewController: UIViewController?, drawerDelegate: DrawerPresentationControllerDelegate? = nil, blurEffectStyle: UIBlurEffect.Style = .light, topGap: CGFloat = 88, modalWidth: CGFloat = 0, cornerRadius: CGFloat = 20) {
         self.init(presentedViewController: presentedViewController, presenting: presentingViewController)
         self.drawerDelegate = drawerDelegate
@@ -111,7 +51,7 @@ public class DrawerPresentationController: UIPresentationController {
     override init(presentedViewController: UIViewController, presenting presentingViewController: UIViewController?) {
         super.init(presentedViewController: presentedViewController, presenting: presentingViewController)
     }
-    
+
     override public func dismissalTransitionWillBegin() {
         self.presentedViewController.transitionCoordinator?.animate(alongsideTransition: { (UIViewControllerTransitionCoordinatorContext) in
             self.blurEffectView.alpha = 0
@@ -119,95 +59,93 @@ public class DrawerPresentationController: UIPresentationController {
             self.blurEffectView.removeFromSuperview()
         })
     }
-    
+
     override public func presentationTransitionWillBegin() {
-        self.blurEffectView.alpha = 0
-        // Add the blur effect view
-        guard let presenterView = self.containerView else { return }
-        presenterView.addSubview(self.blurEffectView)
-        
-        self.presentedViewController.transitionCoordinator?.animate(alongsideTransition: { (UIViewControllerTransitionCoordinatorContext) in
+        blurEffectView.alpha = 0
+        guard let presenterView = containerView else { return }
+        presenterView.addSubview(blurEffectView)
+
+        presentedViewController.transitionCoordinator?.animate(alongsideTransition: { (UIViewControllerTransitionCoordinatorContext) in
             self.blurEffectView.alpha = 1
         }, completion: { (UIViewControllerTransitionCoordinatorContext) in })
     }
-    
+
     override public func containerViewWillLayoutSubviews() {
         super.containerViewWillLayoutSubviews()
-        guard let presentedView = self.presentedView else { return }
-        
+        guard let presentedView = presentedView else { return }
+
         presentedView.layer.masksToBounds = true
-        presentedView.roundCorners(corners: self.roundedCorners, radius: self.cornerRadius)
-        presentedView.addGestureRecognizer(self.panGesture)
+        presentedView.roundCorners(corners: roundedCorners, radius: cornerRadius)
+        presentedView.addGestureRecognizer(panGesture)
     }
-    
+
     override public func containerViewDidLayoutSubviews() {
         super.containerViewDidLayoutSubviews()
-        guard let presenterView = self.containerView else { return }
-        guard let presentedView = self.presentedView else { return }
-        
+        guard let presenterView = containerView else { return }
+        guard let presentedView = presentedView else { return }
+
         // Set the frame and position of the modal
-        presentedView.frame = self.frameOfPresentedViewInContainerView
+        presentedView.frame = frameOfPresentedViewInContainerView
         presentedView.frame.origin.x = (presenterView.frame.width - presentedView.frame.width) / 2
         presentedView.center = CGPoint(x: presentedView.center.x, y: presenterView.center.y * 2)
-        
-        // Set the blur effect frame, behind the modal
-        self.blurEffectView.frame = presenterView.bounds
+
+        blurEffectView.frame = presenterView.bounds
     }
-    
+
     @objc func dismiss() {
-        self.presentedViewController.dismiss(animated: true, completion: nil)
+       presentedViewController.dismiss(animated: true, completion: nil)
     }
-    
+
     @objc func drag(_ gesture:UIPanGestureRecognizer) {
-        guard let presentedView = self.presentedView else { return }
+        guard let presentedView = presentedView else { return }
         switch gesture.state {
         case .changed:
-            self.presentingViewController.view.bringSubviewToFront(presentedView)
-            let translation = gesture.translation(in: self.presentingViewController.view)
+            presentingViewController.view.bringSubviewToFront(presentedView)
+            let translation = gesture.translation(in: presentingViewController.view)
             let y = presentedView.center.y + translation.y
-            
-            let preventBounce: Bool = self.bounce ? true : (y - (self.topGap / 2) > self.presentingViewController.view.center.y)
+
+            let preventBounce: Bool = bounce ? true : (y - (topGap / 2) > presentingViewController.view.center.y)
             // If bounce enabled or view went over the maximum y postion.
             if preventBounce {
-                presentedView.center = CGPoint(x: self.presentedView!.center.x, y: y)
+                presentedView.center = CGPoint(x: presentedView.center.x, y: y)
             }
-            gesture.setTranslation(CGPoint.zero, in: self.presentingViewController.view)
+            gesture.setTranslation(CGPoint.zero, in: presentingViewController.view)
         case .ended:
-            let height = self.presentingViewController.view.frame.height
-            let position = presentedView.convert(self.presentingViewController.view.frame, to: nil).origin.y
+            let height = presentingViewController.view.frame.height
+            let position = presentedView.convert(presentingViewController.view.frame, to: nil).origin.y
             if position < 0 || position < (1/4 * height) {
                 // TOP SNAP POINT
-                self.sendToTop()
-                self.currentSnapPoint = .top
+                sendToTop()
+                currentSnapPoint = .top
             } else if (position < (height / 2)) || (position > (height / 2) && position < (height / 3)) {
                 // MIDDLE SNAP POINT
-                self.sendToMiddle()
-                self.currentSnapPoint = .middle
+                sendToMiddle()
+                currentSnapPoint = .middle
             } else {
                 // BOTTOM SNAP POINT
-                self.currentSnapPoint = .close
-                self.dismiss()
+                currentSnapPoint = .close
+                dismiss()
             }
-            if let d = self.drawerDelegate {
-                d.drawerMovedTo(position: self.currentSnapPoint)
+            if let d = drawerDelegate {
+                d.drawerMovedTo(position: currentSnapPoint)
             }
-            gesture.setTranslation(CGPoint.zero, in: self.presentingViewController.view)
+            gesture.setTranslation(CGPoint.zero, in: presentingViewController.view)
         default:
             return
         }
     }
-    
+
     func sendToTop() {
-        guard let presentedView = self.presentedView else { return }
-        let topYPosition: CGFloat = (self.presentingViewController.view.center.y + CGFloat(self.topGap / 2))
+        guard let presentedView = presentedView else { return }
+        let topYPosition: CGFloat = (presentingViewController.view.center.y + CGFloat(topGap / 2))
         UIView.animate(withDuration: 0.25) {
             presentedView.center = CGPoint(x: presentedView.center.x, y: topYPosition)
         }
     }
-    
+
     func sendToMiddle() {
-        if let presentedView = self.presentedView {
-            let y = self.presentingViewController.view.center.y * 2
+        if let presentedView = presentedView {
+            let y = presentingViewController.view.center.y * 2
             UIView.animate(withDuration: 0.25) {
                 presentedView.center = CGPoint(x: presentedView.center.x, y: y)
             }
